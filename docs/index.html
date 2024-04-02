@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Image Gallery</title>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+</head>
+<body>
+  <div id="image-gallery"></div>
+
+  <script>
+    $.getJSON('images.json', function(data) {
+      data.forEach(function(image) {
+        $('#image-gallery').append('<img src="' + image.source + '" />');
+      });
+    });
+  </script>
+</body>
+</html>
