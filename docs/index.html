@@ -8,9 +8,10 @@
   <div id="image-gallery"></div>
 
   <script>
-    $.getJSON('images.json', function(data) {
+    $.getJSON('./images.json', function(data) {
       data.forEach(function(image) {
-        $('#image-gallery').append('<img src="' + image.source + '" />');
+        var imgElement = '<a href="' + image.archiveSource + '" target="_blank"><img src="' + image.source + '" /></a>';
+        $('#image-gallery').append(imgElement);
       });
     });
   </script>
