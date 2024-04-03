@@ -1,0 +1,91 @@
+#main-content {
+  display: flex;
+}
+#image-gallery {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-around;
+  width: calc(100% - 400px);
+}
+.panel {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 10px;
+  border: 1px solid #ccc;
+  position: relative;
+  width: auto;
+  height: auto;
+}
+
+.panel-content {
+  padding: 10px; /* Add the padding to this div instead of the panel */
+  overflow: hidden;
+}
+
+.panel img {
+  max-width: 600px; /* Adjust this to change the maximum width of the images */
+  max-height: 600px; /* Adjust this to change the maximum height of the images */
+  width: auto;
+  height: auto;
+}
+.panel:hover {
+  background-color: #f0f0f0;
+  cursor: pointer;
+}
+.image-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+.image-container img {
+  max-width: 100%;
+  height: auto;
+  object-fit: cover; /* Add this line to maintain the image's aspect ratio */
+}
+.image-container a {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.image-properties {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  color: white;
+  padding: 10px;
+  display: none;
+}
+.panel:hover .image-properties {
+  display: block;
+}
+#filter-section {
+  position: sticky;
+  top: 0;
+  padding: 10px;
+  background-color: #f8f8f8;
+  width: 200px;
+  height: 100vh;
+  overflow-y: auto;
+}
+#pagination-controls {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+#pagination-controls button {
+  margin: 0 10px;
+  min-width: 75px; /* Add this line to set a minimum width for the buttons */
+  min-height: 25px; /* Add this line to set a minimum height for the buttons */
+}
+
+#page-numbers {
+  display: flex;
+  justify-content: center;
+  margin-top: 10px;
+}

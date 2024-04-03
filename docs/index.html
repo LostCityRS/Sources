@@ -2,18 +2,58 @@
 <html>
 <head>
   <title>Image Gallery</title>
+  <link rel="stylesheet" type="text/css" href="styles.css">
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
 </head>
 <body>
-  <div id="image-gallery"></div>
-
-  <script>
-    $.getJSON('./images.json', function(data) {
-      data.forEach(function(image) {
-        var imgElement = '<a href="' + image.archiveSource + '" target="_blank"><img src="' + image.source + '" /></a>';
-        $('#image-gallery').append(imgElement);
-      });
-    });
-  </script>
+  <div id="main-content">
+    <div id="filter-section">
+        <h2>Filter</h2>
+        <form id="filter-form">
+          <label for="website">Website:</label><br>
+            <select id="website" name="website">
+            <option value="">Any</option>
+            <option value="blacknightsclan.com">blacknightsclan.com</option>
+            <option value="demoniknights.com">demoniknights.com</option>
+            <option value="mgars.illusionfxnet.com">mgars.illusionfxnet.com</option>
+            <option value="neoseeker.com">neoseeker.com</option>
+            <option value="rsboards.com">rsboards.com</option>
+            <option value="rshaven.com">rshaven.com</option>
+            <option value="rsinter.org">rsinter.org</option>
+            <option value="rsrclan.com">rsrclan.com</option>
+            <option value="rune-nation.net">rune-nation.net</option>
+            <option value="runecave.com">runecave.com</option>
+            <option value="runecrypt.com">runecrypt.com</option>
+            <option value="runehints.com">runehints.com</option>
+            <option value="runemasters.net">runemasters.net</option>
+            <option value="runepoli.org">runepoli.org</option>
+            <option value="runescape100.com">runescape100.com</option>
+            <option value="runescapecommunity.com">runescapecommunity.com</option>
+            <option value="runetower.com">runetower.com</option>
+            <option value="runeweb.net">runeweb.net</option>
+            <option value="trillionareguild.com">trillionareguild.com</option>
+            <option value="zybez.com">zybez.com</option>
+            <!-- <option value="website21">REPLACE</option> -->
+            <!-- Add more option elements as needed -->
+            </select><br>
+          <label for="date">Before:</label><br>
+          <input type="date" id="before-date" name="before-date"><br>
+          <label for="archiveDate">After:</label><br>
+          <input type="date" id="after-date" name="after-date"><br>
+          <input type="submit" value="Filter">
+        </form>
+        <div id="pagination-controls">
+            <button id="previous-page">Previous</button>
+            <button id="next-page">Next</button>
+        </div>
+        <div id="page-numbers">Page 1/1</div>
+        <div id="image-details"></div>
+    </div>
+    <div id="image-gallery">
+      <!-- Each image will be wrapped in a .panel div -->
+      <!-- <div class="panel"><img src="image.jpg"></div> -->
+    </div>
+  </div>
+  <script src="script.js"></script>
 </body>
 </html>
