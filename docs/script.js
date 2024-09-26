@@ -19,7 +19,14 @@ $(document).ready(function() {
         const afterDate = filters.afterDate ? new Date(filters.afterDate) : null;
 
         filteredImages = filterImages(images, filters.website, beforeDate, afterDate, filters.fileName);
+
+        // Set the current page from the URL parameter, converting it to a number
+        if (filters.page) {
+            currentPage = Math.max(0, parseInt(filters.page) - 1); // Convert to zero-based index
+        }
+        
         loadImages(filteredImages, currentPage);
+        displayPageNumbers(filteredImages);
 
         $('#filter-form').on('submit', function(e) {
             e.preventDefault();
@@ -152,6 +159,7 @@ function getQueryParameters() {
         website: params.get('website') || '',
         beforeDate: params.get('beforeDate') || '',
         afterDate: params.get('afterDate') || '',
+        page: params.get('page') || '',
         fileName: params.get('fileName') || ''
     };
 }
