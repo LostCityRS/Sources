@@ -1,10 +1,13 @@
+var currentPage = 0;
+var itemsPerPage = 5;
+
 $(document).ready(function() {
     $.getJSON('./images.json', function(images) {
-        var filteredImages = images;
-        var currentPage = 0;
+        var filteredImages = images; // Start with all images
 
         const filters = getQueryParameters();
         $('#website').val(filters.website);
+        $('#file-name').val(filters.fileName);
         if (filters.beforeDate) {
             $('#before-date').val(filters.beforeDate);
         }
@@ -15,22 +18,25 @@ $(document).ready(function() {
         const beforeDate = filters.beforeDate ? new Date(filters.beforeDate) : null;
         const afterDate = filters.afterDate ? new Date(filters.afterDate) : null;
 
-        filteredImages = filterImages(images, filters.website, beforeDate, afterDate);
-        loadImages(filteredImages);
+        filteredImages = filterImages(images, filters.website, beforeDate, afterDate, filters.fileName);
+        loadImages(filteredImages, currentPage);
 
         $('#filter-form').on('submit', function(e) {
             e.preventDefault();
 
             const website = $('#website').val();
+            const fileName = $('#file-name').val().toLowerCase();
             const beforeDateInput = $('#before-date').val() ? new Date($('#before-date').val()) : null;
             const afterDateInput = $('#after-date').val() ? new Date($('#after-date').val()) : null;
 
-            filteredImages = filterImages(images, website, beforeDateInput, afterDateInput);
+            filteredImages = filterImages(images, website, beforeDateInput, afterDateInput, fileName);
 
-            currentPage = 0;
-            loadImages(filteredImages);
+            currentPage = 0; // Reset to the first page after filtering
+            loadImages(filteredImages, currentPage); // Load images for the first page
+            displayPageNumbers(filteredImages); // Display page numbers for filtered images
 
-            let newUrl = `?website=${encodeURIComponent(website)}`;
+            // Update URL
+            let newUrl = `?website=${encodeURIComponent(website)}&page=${currentPage + 1}&fileName=${encodeURIComponent(fileName)}`;
             if (beforeDateInput) {
                 beforeDateInput.setHours(0, 0, 0, 0);
                 newUrl += `&beforeDate=${encodeURIComponent(beforeDateInput.toISOString().split('T')[0])}`;
@@ -52,26 +58,24 @@ $(document).ready(function() {
     });
 });
 
-// Update the filterImages function to accept parameters
-function filterImages(images, website, beforeDate, afterDate) {
+function filterImages(images, website, beforeDate, afterDate, fileName) {
+    const fileNamePattern = convertWildcardToRegex(fileName);
     return images.filter(image => {
         var imageDate = image.archiveDate !== "Unknown" ? new Date(image.archiveDate) : null;
+        var matchesFileName = fileNamePattern.test(image.fileName);
         return (
-            (website === "" || image.website === website) && // Allow any website if "Any" is selected
-            (beforeDate === null || (imageDate && imageDate < beforeDate)) && // Filter by beforeDate
-            (afterDate === null || (imageDate && imageDate > afterDate)) // Filter by afterDate
+            (website === "" || image.website === website) && 
+            (beforeDate === null || (imageDate && imageDate < beforeDate)) && 
+            (afterDate === null || (imageDate && imageDate > afterDate)) && 
+            (fileName === "" || matchesFileName) 
         );
     });
 }
 
-
-var currentPage = 0;
-var itemsPerPage = 5;
-
-function loadImages(images) {
+function loadImages(images, page) {
     $('#image-gallery').empty();
 
-    let start = currentPage * itemsPerPage;
+    let start = page * itemsPerPage;
     let end = Math.min(start + itemsPerPage, images.length);
 
     for (let i = start; i < end; i++) {
@@ -95,21 +99,21 @@ function loadImages(images) {
 function nextPage(images) {
     if ((currentPage + 1) * itemsPerPage < images.length) {
         currentPage++;
-        loadImages(images);
+        loadImages(images, currentPage);
+        displayPageNumbers(images);
+        updateUrlWithPage();
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
-    displayPageNumbers(images);
-    updateUrlWithPage();
 }
 
 function previousPage(images) {
     if (currentPage > 0) {
         currentPage--;
-        loadImages(images);
+        loadImages(images, currentPage);
+        displayPageNumbers(images);
+        updateUrlWithPage();
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
-    displayPageNumbers(images);
-    updateUrlWithPage();
 }
 
 function displayPageNumbers(images) {
@@ -119,7 +123,7 @@ function displayPageNumbers(images) {
 
 function updateUrlWithPage() {
     const filters = getQueryParameters();
-    let newUrl = `?website=${encodeURIComponent(filters.website)}&page=${currentPage + 1}`;
+    let newUrl = `?website=${encodeURIComponent(filters.website)}&page=${currentPage + 1}&fileName=${encodeURIComponent(filters.fileName)}`;
     if (filters.beforeDate) {
         newUrl += `&beforeDate=${encodeURIComponent(filters.beforeDate)}`;
     }
@@ -147,6 +151,16 @@ function getQueryParameters() {
     return {
         website: params.get('website') || '',
         beforeDate: params.get('beforeDate') || '',
-        afterDate: params.get('afterDate') || ''
+        afterDate: params.get('afterDate') || '',
+        fileName: params.get('fileName') || ''
     };
+}
+
+function convertWildcardToRegex(pattern) {
+    let regexPattern = pattern
+        .replace(/([.+?^${}()|\[\]\\])/g, '\\$1')
+        .replace(/\*/g, '.*')
+        .replace(/\?/g, '.');
+
+    return new RegExp(`^${regexPattern}$`, 'i');
 }
