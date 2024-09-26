@@ -51,7 +51,8 @@
   width: 100%;
   height: 100%;
 }
-.image-properties {
+.image-details {
+  text-wrap: wrap;
   position: absolute;
   bottom: 0;
   left: 0;
@@ -76,12 +77,14 @@
   display: flex;
   justify-content: center;
   margin-top: 20px;
+  position: relative;
 }
 
 #pagination-controls button {
   margin: 0 10px;
   min-width: 75px; /* Add this line to set a minimum width for the buttons */
   min-height: 25px; /* Add this line to set a minimum height for the buttons */
+  cursor: pointer;
 }
 
 #page-numbers {

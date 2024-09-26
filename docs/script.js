@@ -1,35 +1,94 @@
-function filterImages(images) {
-    var website = $('#website').val(); // Get the selected option's value
-    var beforeDate = $('#before-date').val() ? new Date($('#before-date').val()) : null;
-    var afterDate = $('#after-date').val() ? new Date($('#after-date').val()) : null;
-  
-    return images.filter(function(image) {
-      var imageDate = image.archiveDate !== "Unknown" ? new Date(image.archiveDate) : null;
-      return (!website || image.website === website) &&
-             (!beforeDate || (imageDate && imageDate <= beforeDate)) &&
-             (!afterDate || (imageDate && imageDate >= afterDate));
+$(document).ready(function() {
+    $.getJSON('./images.json', function(images) {
+        var filteredImages = images;
+        var currentPage = 0;
+
+        const filters = getQueryParameters();
+        $('#website').val(filters.website);
+        if (filters.beforeDate) {
+            $('#before-date').val(filters.beforeDate);
+        }
+        if (filters.afterDate) {
+            $('#after-date').val(filters.afterDate);
+        }
+
+        const beforeDate = filters.beforeDate ? new Date(filters.beforeDate) : null;
+        const afterDate = filters.afterDate ? new Date(filters.afterDate) : null;
+
+        filteredImages = filterImages(images, filters.website, beforeDate, afterDate);
+        loadImages(filteredImages);
+
+        $('#filter-form').on('submit', function(e) {
+            e.preventDefault();
+
+            const website = $('#website').val();
+            const beforeDateInput = $('#before-date').val() ? new Date($('#before-date').val()) : null;
+            const afterDateInput = $('#after-date').val() ? new Date($('#after-date').val()) : null;
+
+            filteredImages = filterImages(images, website, beforeDateInput, afterDateInput);
+
+            currentPage = 0;
+            loadImages(filteredImages);
+
+            let newUrl = `?website=${encodeURIComponent(website)}`;
+            if (beforeDateInput) {
+                beforeDateInput.setHours(0, 0, 0, 0);
+                newUrl += `&beforeDate=${encodeURIComponent(beforeDateInput.toISOString().split('T')[0])}`;
+            }
+            if (afterDateInput) {
+                afterDateInput.setHours(0, 0, 0, 0);
+                newUrl += `&afterDate=${encodeURIComponent(afterDateInput.toISOString().split('T')[0])}`;
+            }
+            window.history.pushState({ path: newUrl }, '', newUrl);
+        });
+
+        $('#previous-page').on('click', function() {
+            previousPage(filteredImages);
+        });
+
+        $('#next-page').on('click', function() {
+            nextPage(filteredImages);
+        });
+    });
+});
+
+// Update the filterImages function to accept parameters
+function filterImages(images, website, beforeDate, afterDate) {
+    return images.filter(image => {
+        var imageDate = image.archiveDate !== "Unknown" ? new Date(image.archiveDate) : null;
+        return (
+            (website === "" || image.website === website) && // Allow any website if "Any" is selected
+            (beforeDate === null || (imageDate && imageDate < beforeDate)) && // Filter by beforeDate
+            (afterDate === null || (imageDate && imageDate > afterDate)) // Filter by afterDate
+        );
     });
 }
 
+
 var currentPage = 0;
-var itemsPerPage = 5; // Change this to the number of items you want per page
+var itemsPerPage = 5;
 
 function loadImages(images) {
     $('#image-gallery').empty();
-    var start = currentPage * itemsPerPage;
-    var end = start + itemsPerPage;
-    var pageImages = images.slice(start, end);
-    pageImages.forEach(function(image) {
-        var imgElement = '<div class="panel"><div class="panel-content"><div class="image-container"><img /></div></div></div>';
-        var $imgElement = $(imgElement);
-        $imgElement.find('img').on('load', function() {
-            $('#image-gallery').append($imgElement);
-        }).attr('src', image.source)
-          .on('click', function(e) {
-            e.preventDefault();
+
+    let start = currentPage * itemsPerPage;
+    let end = Math.min(start + itemsPerPage, images.length);
+
+    for (let i = start; i < end; i++) {
+        let image = images[i];
+        let imageUrl = image.source;
+
+        let imageElement = $('<img>').attr('src', imageUrl);
+        let panelDiv = $('<div>').addClass('panel');
+
+        imageElement.on('click', function() {
             displayImageProperties(image);
         });
-    });
+
+        panelDiv.append(imageElement);
+        $('#image-gallery').append(panelDiv);
+    }
+
     displayPageNumbers(images);
 }
 
@@ -37,55 +96,57 @@ function nextPage(images) {
     if ((currentPage + 1) * itemsPerPage < images.length) {
         currentPage++;
         loadImages(images);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     }
     displayPageNumbers(images);
+    updateUrlWithPage();
 }
 
 function previousPage(images) {
     if (currentPage > 0) {
         currentPage--;
         loadImages(images);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     }
     displayPageNumbers(images);
+    updateUrlWithPage();
 }
 
-// function to display the page numbers: currentPage/totalPages
 function displayPageNumbers(images) {
     var totalPages = Math.ceil(images.length / itemsPerPage);
     $('#page-numbers').text("Page " + (currentPage + 1) + '/' + totalPages);
 }
 
+function updateUrlWithPage() {
+    const filters = getQueryParameters();
+    let newUrl = `?website=${encodeURIComponent(filters.website)}&page=${currentPage + 1}`;
+    if (filters.beforeDate) {
+        newUrl += `&beforeDate=${encodeURIComponent(filters.beforeDate)}`;
+    }
+    if (filters.afterDate) {
+        newUrl += `&afterDate=${encodeURIComponent(filters.afterDate)}`;
+    }
+    window.history.pushState({ path: newUrl }, '', newUrl);
+}
+
 function displayImageProperties(image) {
     $('#image-details').empty();
     $('#image-details').append('<h2>Image Properties</h2>');
-    for (var property in image) {
+
+    const propertiesOrder = ['fileName', 'website', 'archiveSource', 'archiveDate'];
+
+    propertiesOrder.forEach(function(property) {
         if (image.hasOwnProperty(property)) {
             $('#image-details').append('<p><strong>' + property + ':</strong> ' + image[property] + '</p>');
         }
-    }
+    });
 }
 
-var filteredImages = [];
-
-$('#filter-form').on('submit', function(e) {
-    e.preventDefault();
-
-    $.getJSON('./images.json', function(data) {
-        filteredImages = filterImages(data);
-        currentPage = 0; // Reset current page to 0
-        loadImages(filteredImages);
-    });
-});
-
-$.getJSON('./images.json', function(data) {
-    filteredImages = data; // Assuming 'images' is a global variable
-    loadImages(filteredImages);
-
-    $('#previous-page').on('click', function() {
-        previousPage(filteredImages);
-    });
-
-    $('#next-page').on('click', function() {
-        nextPage(filteredImages);
-    });
-});
+function getQueryParameters() {
+    const params = new URLSearchParams(window.location.search);
+    return {
+        website: params.get('website') || '',
+        beforeDate: params.get('beforeDate') || '',
+        afterDate: params.get('afterDate') || ''
+    };
+}
