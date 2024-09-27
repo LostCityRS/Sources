@@ -87,7 +87,7 @@ function loadImages(images, page) {
 
     for (let i = start; i < end; i++) {
         let image = images[i];
-        let imageUrl = image.source;
+        let imageUrl = image.source.replace("%26", "%2526");
 
         let imageElement = $('<img>').attr('src', imageUrl);
         let panelDiv = $('<div>').addClass('panel');
