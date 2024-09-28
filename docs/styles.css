@@ -92,3 +92,21 @@
   justify-content: center;
   margin-top: 10px;
 }
+
+.filter-container {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(100px, 1fr)); /* Two columns, each half the previous width */
+  gap: 5px;
+  margin-bottom: 10px;
+}
+
+.filter-row {
+  display: flex;
+  flex-direction: column; /* Labels on top of inputs */
+  gap: 3px;
+}
+
+.filter-row input {
+  padding: 4px; /* Smaller input padding */
+  max-width: 100%; /* Ensure inputs fit within their grid cells */
+}

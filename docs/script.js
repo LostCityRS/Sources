@@ -3,11 +3,15 @@ var itemsPerPage = 5;
 
 $(document).ready(function() {
     $.getJSON('./images.json', function(images) {
-        var filteredImages = images; // Start with all images
+        var filteredImages = images;
 
         const filters = getQueryParameters();
         $('#website').val(filters.website);
         $('#file-name').val(filters.fileName);
+        $('#min-width').val(filters.minWidth);
+        $('#min-height').val(filters.minHeight);
+        $('#max-width').val(filters.maxWidth);
+        $('#max-height').val(filters.maxHeight);
         if (filters.beforeDate) {
             $('#before-date').val(filters.beforeDate);
         }
@@ -16,44 +20,40 @@ $(document).ready(function() {
         }
 
         const beforeDate = filters.beforeDate ? new Date(filters.beforeDate) : null;
-        const afterDate = filters.afterDate ? new Date(filters.afterDate) : null;
+        const afterDate = filters.afterDate ? new Date(filters.afterDate) : null;  
 
-        filteredImages = filterImages(images, filters.website, beforeDate, afterDate, filters.fileName);
+        filteredImages = filterImages(images, filters.website, beforeDate, afterDate, filters.fileName, filters.minWidth, filters.maxWidth, filters.minHeight, filters.maxHeight);
 
-        // Set the current page from the URL parameter, converting it to a number
+
         if (filters.page) {
-            currentPage = Math.max(0, parseInt(filters.page) - 1); // Convert to zero-based index
+            currentPage = Math.max(0, parseInt(filters.page) - 1);
         }
         
         loadImages(filteredImages, currentPage);
         displayPageNumbers(filteredImages);
+        updateUrlWithPage(getQueryParameters());
 
         $('#filter-form').on('submit', function(e) {
             e.preventDefault();
-
-            const website = $('#website').val();
-            const fileName = $('#file-name').val().toLowerCase();
+        
+            const websiteInput = $('#website').val();
+            const fileNameInput = $('#file-name').val().toLowerCase();
             const beforeDateInput = $('#before-date').val() ? new Date($('#before-date').val()) : null;
             const afterDateInput = $('#after-date').val() ? new Date($('#after-date').val()) : null;
-
-            filteredImages = filterImages(images, website, beforeDateInput, afterDateInput, fileName);
-
+        
+            const minWidthInput = $('#min-width').val() ? parseInt($('#min-width').val()) : null;
+            const maxWidthInput = $('#max-width').val() ? parseInt($('#max-width').val()) : null;
+            const minHeightInput = $('#min-height').val() ? parseInt($('#min-height').val()) : null;
+            const maxHeightInput = $('#max-height').val() ? parseInt($('#max-height').val()) : null;
+        
+            filteredImages = filterImages(images, websiteInput, beforeDateInput, afterDateInput, fileNameInput, minWidthInput, maxWidthInput, minHeightInput, maxHeightInput);
+        
             currentPage = 0; // Reset to the first page after filtering
             loadImages(filteredImages, currentPage); // Load images for the first page
             displayPageNumbers(filteredImages); // Display page numbers for filtered images
-
-            // Update URL
-            let newUrl = `?website=${encodeURIComponent(website)}&page=${currentPage + 1}&fileName=${encodeURIComponent(fileName)}`;
-            if (beforeDateInput) {
-                beforeDateInput.setHours(0, 0, 0, 0);
-                newUrl += `&beforeDate=${encodeURIComponent(beforeDateInput.toISOString().split('T')[0])}`;
-            }
-            if (afterDateInput) {
-                afterDateInput.setHours(0, 0, 0, 0);
-                newUrl += `&afterDate=${encodeURIComponent(afterDateInput.toISOString().split('T')[0])}`;
-            }
-            window.history.pushState({ path: newUrl }, '', newUrl);
-        });
+        
+            updateUrlWithPage({website: websiteInput, fileName: fileNameInput, beforeDate: beforeDateInput, afterDate: afterDateInput, minWidth: minWidthInput, maxWidth: maxWidthInput, minHeight: minHeightInput, maxHeight: maxHeightInput}); // Ensure this reflects all filters
+        });        
 
         $('#previous-page').on('click', function() {
             previousPage(filteredImages);
@@ -65,16 +65,24 @@ $(document).ready(function() {
     });
 });
 
-function filterImages(images, website, beforeDate, afterDate, fileName) {
+function filterImages(images, website, beforeDate, afterDate, fileName, minWidth, maxWidth, minHeight, maxHeight) {
     const fileNamePattern = convertWildcardToRegex(fileName);
     return images.filter(image => {
         var imageDate = image.archiveDate !== "Unknown" ? new Date(image.archiveDate) : null;
         var matchesFileName = fileNamePattern.test(image.fileName);
+
+        const imageWidth = image.width ? parseInt(image.width) : null;
+        const imageHeight = image.height ? parseInt(image.height) : null;
+
         return (
-            (website === "" || image.website === website) && 
-            (beforeDate === null || (imageDate && imageDate < beforeDate)) && 
-            (afterDate === null || (imageDate && imageDate > afterDate)) && 
-            (fileName === "" || matchesFileName) 
+            (website === "" || image.website === website) && // Filter by website
+            (beforeDate === null || (imageDate && imageDate < beforeDate)) && // Filter by beforeDate
+            (afterDate === null || (imageDate && imageDate > afterDate)) && // Filter by afterDate
+            (fileName === "" || matchesFileName) && // Filter by file name
+            (minWidth === "" || minWidth === null || imageWidth === null || imageWidth >= parseInt(minWidth)) && // Filter by minWidth
+            (maxWidth === "" || maxWidth === null || imageWidth === null || imageWidth <= parseInt(maxWidth)) && // Filter by maxWidth
+            (minHeight === "" || minHeight === null || imageHeight === null || imageHeight >= parseInt(minHeight)) && // Filter by minHeight
+            (maxHeight === "" || maxHeight === null || imageHeight === null || imageHeight <= parseInt(maxHeight)) // Filter by maxHeight
         );
     });
 }
@@ -108,7 +116,7 @@ function nextPage(images) {
         currentPage++;
         loadImages(images, currentPage);
         displayPageNumbers(images);
-        updateUrlWithPage();
+        updateUrlWithPage(getQueryParameters());
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 }
@@ -118,7 +126,7 @@ function previousPage(images) {
         currentPage--;
         loadImages(images, currentPage);
         displayPageNumbers(images);
-        updateUrlWithPage();
+        updateUrlWithPage(getQueryParameters());
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 }
@@ -128,23 +136,44 @@ function displayPageNumbers(images) {
     $('#page-numbers').text("Page " + (currentPage + 1) + '/' + totalPages);
 }
 
-function updateUrlWithPage() {
-    const filters = getQueryParameters();
-    let newUrl = `?website=${encodeURIComponent(filters.website)}&page=${currentPage + 1}&fileName=${encodeURIComponent(filters.fileName)}`;
+function updateUrlWithPage(filters) {
+    let newUrl = `?page=${currentPage + 1}`;
+
+    // Only add filters if they have values
+    if (filters.website) {
+        newUrl += `&website=${encodeURIComponent(filters.website)}`;
+    }
+    if (filters.fileName) {
+        newUrl += `&fileName=${encodeURIComponent(filters.fileName)}`;
+    }
     if (filters.beforeDate) {
         newUrl += `&beforeDate=${encodeURIComponent(filters.beforeDate)}`;
     }
     if (filters.afterDate) {
         newUrl += `&afterDate=${encodeURIComponent(filters.afterDate)}`;
     }
+    if (filters.minWidth !== null && filters.minWidth !== '') {
+        newUrl += `&minWidth=${encodeURIComponent(filters.minWidth)}`;
+    }
+    if (filters.maxWidth !== null && filters.maxWidth !== '') {
+        newUrl += `&maxWidth=${encodeURIComponent(filters.maxWidth)}`;
+    }
+    if (filters.minHeight !== null && filters.minHeight !== '') {
+        newUrl += `&minHeight=${encodeURIComponent(filters.minHeight)}`;
+    }
+    if (filters.maxHeight !== null && filters.maxHeight !== '') {
+        newUrl += `&maxHeight=${encodeURIComponent(filters.maxHeight)}`;
+    }
+
     window.history.pushState({ path: newUrl }, '', newUrl);
 }
+
 
 function displayImageProperties(image) {
     $('#image-details').empty();
     $('#image-details').append('<h2>Image Properties</h2>');
 
-    const propertiesOrder = ['fileName', 'website', 'archiveSource', 'archiveDate'];
+    const propertiesOrder = ['fileName', 'website', 'archiveSource', 'archiveDate', 'width', 'height'];
 
     propertiesOrder.forEach(function(property) {
         if (image.hasOwnProperty(property)) {
@@ -160,9 +189,14 @@ function getQueryParameters() {
         beforeDate: params.get('beforeDate') || '',
         afterDate: params.get('afterDate') || '',
         page: params.get('page') || '',
-        fileName: params.get('fileName') || ''
+        fileName: params.get('fileName') || '',
+        minWidth: params.get('minWidth') ? parseInt(params.get('minWidth')) : null,
+        maxWidth: params.get('maxWidth') ? parseInt(params.get('maxWidth')) : null,
+        minHeight: params.get('minHeight') ? parseInt(params.get('minHeight')) : null,
+        maxHeight: params.get('maxHeight') ? parseInt(params.get('maxHeight')) : null,
     };
 }
+
 
 function convertWildcardToRegex(pattern) {
     let regexPattern = pattern
