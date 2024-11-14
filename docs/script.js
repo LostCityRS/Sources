@@ -68,7 +68,7 @@ $(document).ready(function() {
 function filterImages(images, website, beforeDate, afterDate, fileName, minWidth, maxWidth, minHeight, maxHeight) {
     const fileNamePattern = convertWildcardToRegex(fileName);
     return images.filter(image => {
-        var imageDate = image.archiveDate !== "Unknown" ? new Date(image.archiveDate) : null;
+        var imageDate = image.date !== "Unknown" && image.date ? new Date(image.date) : (image.archiveDate !== "Unknown" ? new Date(image.archiveDate) : null);
         var matchesFileName = fileNamePattern.test(image.fileName);
 
         const imageWidth = image.width ? parseInt(image.width) : null;
@@ -86,6 +86,7 @@ function filterImages(images, website, beforeDate, afterDate, fileName, minWidth
         );
     });
 }
+
 
 function loadImages(images, page) {
     $('#image-gallery').empty();
@@ -173,14 +174,15 @@ function displayImageProperties(image) {
     $('#image-details').empty();
     $('#image-details').append('<h2>Image Properties</h2>');
 
-    const propertiesOrder = ['fileName', 'website', 'archiveSource', 'archiveDate', 'width', 'height'];
+    const propertiesOrder = ['fileName', 'website', 'archiveSource', 'archiveDate', 'date', 'imageLink', 'width', 'height'];
 
     propertiesOrder.forEach(function(property) {
-        if (image.hasOwnProperty(property)) {
+        if (image.hasOwnProperty(property) && image[property] !== "Unknown") {
             $('#image-details').append('<p><strong>' + property + ':</strong> ' + image[property] + '</p>');
         }
     });
 }
+
 
 function getQueryParameters() {
     const params = new URLSearchParams(window.location.search);
